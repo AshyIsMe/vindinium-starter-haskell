@@ -8,21 +8,44 @@ import Vindinium
 import System.Random (getStdRandom, randomR)
 import Data.Maybe (fromJust)
 import Control.Monad (liftM)
-import Control.Monad.IO.Class (liftIO)
+import Control.Monad.IO.Class (MonadIO, liftIO)
 
 bot :: Bot
 {-bot = randomBot-}
-bot = attackBot
+bot = minerBot
+
+randomBot :: Bot
+randomBot _ = liftM fromJust $ liftIO $ pickRandom [Stay, North, South, East, West]
 
 attackBot :: Bot
 attackBot state = do
-    h <- liftM fromJust $ liftIO $ randomHero state
+    h <- randomHero state
     me <- return $ stateHero state
     return $ getDirection (heroPos me) (heroPos h)
 
-{-attackBot state = return $ getDirection (heroPos me) (heroPos h)-}
-    {-where h = liftM fromJust $ liftIO $ randomHero state-}
-          {-me = stateHero state-}
+minerBot :: Bot
+minerBot state = return $ goToMine closestMine
+    where closestMine = nearestMine state
+          me = stateHero state
+          goToMine mine = getDirection (heroPos me) mine
+
+nearestMine state =
+    let board = gameBoard . stateGame $ state
+        positions = boardPositions board
+        mines = filter (\p -> isMine board p) positions
+    in
+      -- AA TODO: do distance ranking and choose the actual closest one
+      mines !! 0
+
+isMine b p = case tileAt b p of
+               Just (MineTile _) -> True
+               _ -> False
+
+boardPositions board = positions $ boardSize board
+  where positions side = 
+          -- x = idx `mod` boardSize
+          -- y = idx `div` boardSize
+          foldl (\ps i -> ps ++ [Pos (i `mod` side) (i `div` side)]) [] [0,1..(side*side)]
 
 getDirection :: Pos -> Pos -> Dir
 getDirection source dest =
@@ -41,13 +64,8 @@ comparePos source dest =
         y = compare (posY source) (posY dest)
     in [x, y]
 
-randomHero :: State -> IO (Maybe Hero)
-randomHero state = pickRandom $ gameHeroes (stateGame state)
-{-randomHero :: MonadIO m => State -> m Hero-}
-{-randomHero state = liftM fromJust $ liftIO $ pickRandom $ gameHeroes (stateGame state)-}
-
-randomBot :: Bot
-randomBot _ = liftM fromJust $ liftIO $ pickRandom [Stay, North, South, East, West]
+randomHero :: MonadIO m => State -> m Hero
+randomHero state = liftM fromJust $ liftIO $ pickRandom $ gameHeroes (stateGame state)
 
 inBoard :: Board -> Pos -> Bool
 inBoard b (Pos x y) =
