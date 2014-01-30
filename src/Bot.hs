@@ -15,11 +15,14 @@ bot :: Bot
 bot = attackBot
 
 attackBot :: Bot
-attackBot state = 
-    let h = randomHero state
-        me = stateHero state
-    in getDirection (heroPos me) (heroPos h)
-    {-How do I put the Dir from getDirection into the Vindinium monad?-}
+attackBot state = do
+    h <- liftM fromJust $ liftIO $ randomHero state
+    me <- return $ stateHero state
+    return $ getDirection (heroPos me) (heroPos h)
+
+{-attackBot state = return $ getDirection (heroPos me) (heroPos h)-}
+    {-where h = liftM fromJust $ liftIO $ randomHero state-}
+          {-me = stateHero state-}
 
 getDirection :: Pos -> Pos -> Dir
 getDirection source dest =
@@ -40,6 +43,8 @@ comparePos source dest =
 
 randomHero :: State -> IO (Maybe Hero)
 randomHero state = pickRandom $ gameHeroes (stateGame state)
+{-randomHero :: MonadIO m => State -> m Hero-}
+{-randomHero state = liftM fromJust $ liftIO $ pickRandom $ gameHeroes (stateGame state)-}
 
 randomBot :: Bot
 randomBot _ = liftM fromJust $ liftIO $ pickRandom [Stay, North, South, East, West]
