@@ -11,10 +11,35 @@ import Control.Monad (liftM)
 import Control.Monad.IO.Class (liftIO)
 
 bot :: Bot
-bot = randomBot
+{-bot = randomBot-}
+bot = attackBot
 
-myBot :: Bot
-myBot = error "it's up to you :)"
+attackBot :: Bot
+attackBot state = 
+    let h = randomHero state
+        me = stateHero state
+    in getDirection (heroPos me) (heroPos h)
+    {-How do I put the Dir from getDirection into the Vindinium monad?-}
+
+getDirection :: Pos -> Pos -> Dir
+getDirection source dest =
+    if source == dest
+      then Stay
+      else
+        case comparePos source dest of 
+          [GT,_] -> West
+          [LT,_] -> East
+          [_,GT] -> North
+          [_,LT] -> South
+
+comparePos :: Pos -> Pos -> [Ordering]
+comparePos source dest = 
+    let x = compare (posX source) (posX dest)
+        y = compare (posY source) (posY dest)
+    in [x, y]
+
+randomHero :: State -> IO (Maybe Hero)
+randomHero state = pickRandom $ gameHeroes (stateGame state)
 
 randomBot :: Bot
 randomBot _ = liftM fromJust $ liftIO $ pickRandom [Stay, North, South, East, West]
