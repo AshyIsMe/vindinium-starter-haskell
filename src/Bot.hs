@@ -9,6 +9,7 @@ import System.Random (getStdRandom, randomR)
 import Data.Maybe (fromJust)
 import Control.Monad (liftM)
 import Control.Monad.IO.Class (MonadIO, liftIO)
+import Data.Graph
 
 bot :: Bot
 {-bot = randomBot-}
@@ -41,6 +42,7 @@ isMine b p = case tileAt b p of
                Just (MineTile _) -> True
                _ -> False
 
+boardPositions :: Board -> [Pos]
 boardPositions board = positions $ boardSize board
   where positions side = 
           -- x = idx `mod` boardSize
@@ -64,8 +66,28 @@ comparePos source dest =
         y = compare (posY source) (posY dest)
     in [x, y]
 
+graphFromBoard :: Board -> Graph
+graphFromBoard b = buildG (0, side * side) edges
+  where edges = walkableEdges b
+        side = boardSize b
+
+walkableEdges :: Board -> [Edge]
+walkableEdges b = concat $ map walkableNeighbours [0,1..n]
+  where walkableNeighbours i = map (\p -> (i, posToIndex b p)) (validNeighBours i)
+        validNeighBours i = (filter (inBoard b) $ neighBours i)
+        side = boardSize b
+        n = (side * side) - 1
+        neighBours i = [Pos ((i `mod` side) - 1) (i `div` side), --West
+                        Pos ((i `mod` side) + 1) (i `div` side), --East
+                        Pos (i `mod` side) ((i `div` side) - 1), --North
+                        Pos (i `mod` side) ((i `div` side) + 1)] --South
+
 randomHero :: MonadIO m => State -> m Hero
 randomHero state = liftM fromJust $ liftIO $ pickRandom $ gameHeroes (stateGame state)
+
+posToIndex :: Board -> Pos -> Int
+posToIndex b p@(Pos x y) = idx
+  where idx = y * boardSize b + x
 
 inBoard :: Board -> Pos -> Bool
 inBoard b (Pos x y) =

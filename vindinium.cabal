@@ -25,3 +25,4 @@ executable vindinium
                   , http-types
                   , http-client
                   , optparse-applicative
+                  , containers
