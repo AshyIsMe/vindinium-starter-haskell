@@ -30,14 +30,20 @@ minerBot state = return $ goToMine closestMine
           me = stateHero state
           goToMine mine = getDirection (heroPos me) mine
 
+nearestMine :: State -> Pos
 nearestMine state =
     let board = gameBoard . stateGame $ state
         positions = boardPositions board
         mines = filter (\p -> isMine board p) positions
+        me = stateHero state
+        reachableNodes = dfs (graphFromBoard board) [posToIndex board (heroPos me)] !! 0
     in
       -- AA TODO: do distance ranking and choose the actual closest one
+      -- reachableNodes is a tree of nodes my hero can reach.
+      -- Need a function: shortestPath reachableNodes targetNode
       mines !! 0
 
+isMine :: Board -> Pos -> Bool
 isMine b p = case tileAt b p of
                Just (MineTile _) -> True
                _ -> False
