@@ -123,13 +123,16 @@ graphFromBoard b = mkGraph lnodes ledges
         side = boardSize b
 
 walkableEdges :: Board -> [LEdge Int]
---AA TODO: if i is WoodTile, MineTile, (TavernTile? HeroTile?) then it
+--If i is WoodTile, MineTile, TavernTile, HeroTile then it
 --should not have any walkable neighbours because you cant walk onto those
 --tiles. (Even though attempting to walk onto a MineTile is how you capture
 --it, it doesn't actually move you onto it)
 walkableEdges b = concat $ map walkableNeighbours [0,1..n]
   where walkableNeighbours i = map (\t@(p,d) -> (i, posToIndex b p, d)) (validNeighBours i)
-        validNeighBours i = filter (\ln@(i,_) -> (inBoard b i)) $ neighBours i
+        validNeighBours i = case tileAt b (indexToPos b i) of
+                              Just FreeTile     -> filter (\ln@(i,_) -> (inBoard b i)) $ neighBours i
+                              Just (HeroTile h) -> filter (\ln@(i,_) -> (inBoard b i)) $ neighBours i
+                              _ -> []
         side = boardSize b
         n = (side * side) - 1
         neighBours i = [--Positions of neighbours and travel distance of 1
