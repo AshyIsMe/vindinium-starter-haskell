@@ -4,6 +4,7 @@ module Vindinium.Api
         , startArena
         , move
         , parseBoard
+        , printTiles
         )
     where
 
@@ -19,6 +20,7 @@ import Data.Monoid ((<>))
 import Control.Monad (liftM, mzero)
 import Control.Monad.IO.Class (liftIO)
 import Control.Applicative ((<$>), (<*>))
+import Debug.Trace
 
 startTraining :: Maybe Int -> Maybe Board -> Vindinium State
 startTraining mi mb = do
@@ -132,6 +134,7 @@ instance FromJSON GameId where
     parseJSON x = GameId <$> parseJSON x
 
 instance FromJSON Hero where
+    {-parseJSON (Object o) = trace ("hero object: " ++ show o) Hero <$> o .: "id"-}
     parseJSON (Object o) = Hero <$> o .: "id"
                                 <*> o .: "name"
                                 <*> o .:? "userId"
@@ -148,7 +151,8 @@ instance FromJSON HeroId where
     parseJSON x = HeroId <$> parseJSON x
 
 instance FromJSON Pos where
-    parseJSON (Object o) = Pos <$> o .: "x" <*> o .: "y"
+    {-parseJSON (Object o) = Pos <$> o .: "x" <*> o .: "y"-}
+    parseJSON (Object o) = Pos <$> o .: "y" <*> o .: "x"
     parseJSON _ = mzero
 
 instance FromJSON Board where

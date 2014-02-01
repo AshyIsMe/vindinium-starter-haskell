@@ -27,3 +27,4 @@ executable vindinium
                   , optparse-applicative
                   , containers
                   , fgl
+                  , split

@@ -7,6 +7,7 @@ module Vindinium.Types
         , Key (..)
         , Bot
         , State (..)
+        , stateBoard 
         , GameId (..)
         , Game (..)
         , HeroId (..)
@@ -15,7 +16,6 @@ module Vindinium.Types
         , Tile (..)
         , Pos (..)
         , Dir (..)
-        , BiDir (..)
         )
     where
 
@@ -46,6 +46,9 @@ data State = State {
   , stateViewUrl :: Text
   , statePlayUrl :: Text
 } deriving (Show, Eq)
+
+stateBoard :: State -> Board
+stateBoard = gameBoard . stateGame
 
 newtype GameId = GameId Text
     deriving (Show, Eq)
@@ -94,6 +97,3 @@ data Pos = Pos {
 
 data Dir = Stay | North | South | East | West
     deriving (Show, Eq)
-
-data BiDir = Horizontal | Vertical
-   deriving (Show, Eq)
