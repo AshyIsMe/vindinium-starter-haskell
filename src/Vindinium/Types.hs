@@ -15,6 +15,7 @@ module Vindinium.Types
         , Tile (..)
         , Pos (..)
         , Dir (..)
+        , BiDir (..)
         )
     where
 
@@ -93,3 +94,6 @@ data Pos = Pos {
 
 data Dir = Stay | North | South | East | West
     deriving (Show, Eq)
+
+data BiDir = Horizontal | Vertical
+   deriving (Show, Eq)

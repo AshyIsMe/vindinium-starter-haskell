@@ -1,5 +1,7 @@
 module Bot
         ( bot
+          , graphFromBoard
+          , posToIndex
         )
     where
 
@@ -9,7 +11,8 @@ import System.Random (getStdRandom, randomR)
 import Data.Maybe (fromJust)
 import Control.Monad (liftM)
 import Control.Monad.IO.Class (MonadIO, liftIO)
-import Data.Graph
+import Data.Graph.Inductive.Graph
+import Data.Graph.Inductive.Tree
 
 bot :: Bot
 {-bot = randomBot-}
@@ -72,22 +75,24 @@ comparePos source dest =
         y = compare (posY source) (posY dest)
     in [x, y]
 
-graphFromBoard :: Board -> Graph
-graphFromBoard b = buildG (0, side * side) edges
-  where edges = walkableEdges b
+graphFromBoard :: Board -> Gr Tile BiDir
+graphFromBoard b = mkGraph lnodes ledges
+  where lnodes = map (\i -> (i, (boardTiles b) !! i)) [0,1..n]
+        ledges = walkableEdges b
+        n = (side * side) - 1
         side = boardSize b
 
-walkableEdges :: Board -> [Edge]
+walkableEdges :: Board -> [LEdge BiDir]
 walkableEdges b = concat $ map walkableNeighbours [0,1..n]
-  where walkableNeighbours i = map (\p -> (i, posToIndex b p)) (validNeighBours i)
-        validNeighBours i = (filter (inBoard b) $ neighBours i)
+  where walkableNeighbours i = map (\t@(p,d) -> (i, posToIndex b p, d)) (validNeighBours i)
+        validNeighBours i = filter (\ln@(i,_) -> (inBoard b i)) $ neighBours i
         side = boardSize b
         n = (side * side) - 1
-        neighBours i = [Pos ((i `mod` side) - 1) (i `div` side), --West
-                        Pos ((i `mod` side) + 1) (i `div` side), --East
-                        Pos (i `mod` side) ((i `div` side) - 1), --North
-                        Pos (i `mod` side) ((i `div` side) + 1)] --South
-
+        neighBours i = [(Pos ((i `mod` side) - 1) (i `div` side), Horizontal), --West
+                        (Pos ((i `mod` side) + 1) (i `div` side), Horizontal), --East
+                        (Pos (i `mod` side) ((i `div` side) - 1), Vertical), --North
+                        (Pos (i `mod` side) ((i `div` side) + 1), Vertical)] --South
+   
 randomHero :: MonadIO m => State -> m Hero
 randomHero state = liftM fromJust $ liftIO $ pickRandom $ gameHeroes (stateGame state)
 

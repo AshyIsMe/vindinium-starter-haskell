@@ -3,6 +3,7 @@ module Vindinium.Api
         ( startTraining
         , startArena
         , move
+        , parseBoard
         )
     where
 
