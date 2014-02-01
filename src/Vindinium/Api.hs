@@ -152,6 +152,7 @@ instance FromJSON HeroId where
 
 instance FromJSON Pos where
     {-parseJSON (Object o) = Pos <$> o .: "x" <*> o .: "y"-}
+    --AA 20140201 y and x needed to be swapped around here
     parseJSON (Object o) = Pos <$> o .: "y" <*> o .: "x"
     parseJSON _ = mzero
 
