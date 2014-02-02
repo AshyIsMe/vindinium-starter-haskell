@@ -41,11 +41,6 @@ attackBot state = return $ direction
         direction = if h /= me
                       then getDirection (stateBoard state) (heroPos me) (heroPos h)
                       else getDirection (stateBoard state) (heroPos me) tavern
-{-attackBot state = do-}
-    {-[>h <- randomHero state<]-}
-    {-h <- return $ weakestHero state-}
-    {-me <- return $ stateHero state-}
-    {-return $ getDirection (stateBoard state) (heroPos me) (heroPos h)-}
 
 minerBot :: Bot
 minerBot state = return $ goToMine closestMine
@@ -66,17 +61,6 @@ nearestTavern state = nearestTileWith state isTavern
 
 nearestMine :: State -> Pos
 nearestMine state = nearestTileWith state isEnemyMine
-{-nearestMine state =-}
-    {-let board = gameBoard . stateGame $ state-}
-        {-positions = boardPositions board-}
-        {-mines = filter (\p -> isEnemyMine state p) positions-}
-        {-me = stateHero state-}
-        {-paths = map (shortestPath board (heroPos me)) mines-}
-    {-in-}
-      {-case (sortWith length paths) of-}
-        {-((n1:n2:ns):_) -> indexToPos board $ last $ (n1:n2:ns)-}
-        {-[]             -> heroPos me --No enemy mines, we own them all!-}
-        {-([]:_)         -> error "path empty!"-}
 
 nearestTileWith :: State -> (State -> Pos -> Bool) -> Pos
 nearestTileWith state f =
