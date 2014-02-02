@@ -1,5 +1,7 @@
 module Bot
-        ( bot
+        (   bot
+          , minerBot
+          , attackBot
           , graphFromBoard
           , posToIndex
         )
@@ -23,20 +25,27 @@ import Data.Text (unpack)
 
 bot :: Bot
 {-bot = randomBot-}
-bot = minerBot
-{-bot = eastBot-}
-
-eastBot :: Bot
-eastBot _ = return East
+{-bot = minerBot-}
+bot = attackBot
 
 randomBot :: Bot
 randomBot _ = liftM fromJust $ liftIO $ pickRandom [Stay, North, South, East, West]
 
 attackBot :: Bot
-attackBot state = do
-    h <- randomHero state
-    me <- return $ stateHero state
-    return $ getDirection (stateBoard state) (heroPos me) (heroPos h)
+--Attack the weakest hero.
+--If I'm the weakest hero then run to the pub!
+attackBot state = return $ direction
+  where h = weakestHero state
+        me = stateHero state
+        tavern = nearestTavern state
+        direction = if h /= me
+                      then getDirection (stateBoard state) (heroPos me) (heroPos h)
+                      else getDirection (stateBoard state) (heroPos me) tavern
+{-attackBot state = do-}
+    {-[>h <- randomHero state<]-}
+    {-h <- return $ weakestHero state-}
+    {-me <- return $ stateHero state-}
+    {-return $ getDirection (stateBoard state) (heroPos me) (heroPos h)-}
 
 minerBot :: Bot
 minerBot state = return $ goToMine closestMine
@@ -52,25 +61,45 @@ printBoard b = intercalate "\n" $ chunksOf bsize tiles
   where bsize = boardSize b * 2 --tiles are 2 chars wide
         tiles = unpack $ printTiles $ boardTiles b
 
+nearestTavern :: State -> Pos
+nearestTavern state = nearestTileWith state isTavern
+
 nearestMine :: State -> Pos
-nearestMine state =
+nearestMine state = nearestTileWith state isEnemyMine
+{-nearestMine state =-}
+    {-let board = gameBoard . stateGame $ state-}
+        {-positions = boardPositions board-}
+        {-mines = filter (\p -> isEnemyMine state p) positions-}
+        {-me = stateHero state-}
+        {-paths = map (shortestPath board (heroPos me)) mines-}
+    {-in-}
+      {-case (sortWith length paths) of-}
+        {-((n1:n2:ns):_) -> indexToPos board $ last $ (n1:n2:ns)-}
+        {-[]             -> heroPos me --No enemy mines, we own them all!-}
+        {-([]:_)         -> error "path empty!"-}
+
+nearestTileWith :: State -> (State -> Pos -> Bool) -> Pos
+nearestTileWith state f =
     let board = gameBoard . stateGame $ state
         positions = boardPositions board
-        mines = filter (\p -> isEnemyMine state p) positions
+        targetTiles = filter (\p -> f state p) positions
         me = stateHero state
-        paths = map (shortestPath board (heroPos me)) mines
+        paths = map (shortestPath board (heroPos me)) targetTiles
     in
-      {-indexToPos board $ last $ (sortWith length paths) !! 0-}
       case (sortWith length paths) of
         ((n1:n2:ns):_) -> indexToPos board $ last $ (n1:n2:ns)
-        {-((n1:n2):_)    -> error "path only 2 long!"-}
+        []             -> heroPos me --No targetTiles, just Stay
         ([]:_)         -> error "path empty!"
-        []             -> error $ "no paths at all: length mines = " ++ show (length mines) ++ show (board)
 
 isMine :: Board -> Pos -> Bool
 isMine b p = case tileAt b p of
                Just (MineTile _) -> True
                _ -> False
+
+isTavern :: State -> Pos -> Bool
+isTavern s p = case tileAt (stateBoard s) p of
+                 Just TavernTile -> True
+                 _ -> False
 
 isEnemyMine :: State -> Pos -> Bool
 isEnemyMine s p = case tileAt (stateBoard s) p of
@@ -146,9 +175,14 @@ shortestPath b start dest = sp s d g
   where g = graphFromBoard b
         s = (posToIndex b start)
         d = (posToIndex b dest)
+
+weakestHero :: State -> Hero
+weakestHero state = case take 1 (sortWith heroLife $ gameHeroes (stateGame state)) of
+                      [h] -> h
    
 randomHero :: MonadIO m => State -> m Hero
-randomHero state = liftM fromJust $ liftIO $ pickRandom $ gameHeroes (stateGame state)
+{-randomHero state = liftM fromJust $ liftIO $ pickRandom $ gameHeroes (stateGame state)-}
+randomHero state = liftM fromJust $ liftIO $ pickRandom $ filter (\h -> h /= stateHero state) $ gameHeroes (stateGame state)
 
 posToIndex :: Board -> Pos -> Node
 posToIndex b p@(Pos x y) = idx
