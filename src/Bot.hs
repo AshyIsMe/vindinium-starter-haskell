@@ -32,17 +32,41 @@ randomBot :: Bot
 randomBot _ = liftM fromJust $ liftIO $ pickRandom [Stay, North, South, East, West]
 
 attackBot :: Bot
---Attack the weakest hero.
 --If I'm the weakest hero then run to the pub!
+--Attack the hero with the most mines.
+  --Ignore bots who are standing on their spawn point.
+  --Ignore bots who are standing next to a TavernTile.
+--If no bots left, then go capture mines instead.
 attackBot state = return $ direction
-  where h = weakestHero state
+  where 
+        heroes = filter validTarget $ reverse $ sortWith heroMineCount $ gameHeroes (stateGame state)
+        validTarget = (\h -> not (atHome h) && not (atTavern (stateBoard state) h))
+        runt = weakestHero state
         me = stateHero state
         tavern = nearestTavern state
-        direction = if h /= me
-                      then trace (printState state ++ "weakestHero: " ++ show h) 
-                        getDirection state (heroPos me) (heroPos h)
-                      else trace (printState state ++ "nearestTavern: " ++ show tavern)
+        mine = nearestMine state
+        direction = if runt == me
+                      then trace (printState state ++ "nearestTavern: " ++ show tavern)
                         getDirection state (heroPos me) tavern
+                      else case heroes of
+                             (h:_) -> trace (printState state ++ "most mines Hero: " ++ show h) 
+                                        getDirection state (heroPos me) (heroPos h)
+                             _     -> trace (printState state ++ "nearestMine: " ++ show mine) 
+                                        getDirection state (heroPos me) mine
+
+atHome :: Hero -> Bool
+atHome h = heroPos h /= heroSpawnPos h
+
+atTavern :: Board -> Hero -> Bool
+atTavern b h = Just TavernTile `elem` neighbourTiles
+  where
+    side = boardSize b
+    i = posToIndex b $ heroPos h
+    neighBours = [Pos ((i `mod` side) - 1) (i `div` side), --West
+                  Pos ((i `mod` side) + 1) (i `div` side), --East
+                  Pos (i `mod` side) ((i `div` side) - 1), --North
+                  Pos (i `mod` side) ((i `div` side) + 1)] --South
+    neighbourTiles = map (tileAt b) neighBours
 
 minerBot :: Bot
 minerBot state = return $ goToMine closestMine
