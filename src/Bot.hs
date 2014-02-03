@@ -49,13 +49,13 @@ attackBot state = return $ direction
                       then trace (printState state ++ "nearestTavern: " ++ show tavern)
                         getDirection state (heroPos me) tavern
                       else case heroes of
-                             (h:_) -> trace (printState state ++ "most mines Hero: " ++ show h) 
+                             (h:_) -> trace (printState state ++ "most mines Hero: " ++ show h ++ "\n") 
                                         getDirection state (heroPos me) (heroPos h)
-                             _     -> trace (printState state ++ "nearestMine: " ++ show mine) 
+                             _     -> trace (printState state ++ "nearestMine: " ++ show mine ++ "\n") 
                                         getDirection state (heroPos me) mine
 
 atHome :: Hero -> Bool
-atHome h = heroPos h /= heroSpawnPos h
+atHome h = heroPos h == heroSpawnPos h
 
 atTavern :: Board -> Hero -> Bool
 atTavern b h = Just TavernTile `elem` neighbourTiles
