@@ -47,7 +47,7 @@ attackBot state = return $ direction
         me = stateHero state
         tavern = nearestTavern state
         mine = nearestMine state
-        direction = if runt == me
+        direction = if runt == me || (heroLife me) <= 20
                       then trace (printState state ++ "nearestTavern: " ++ show tavern)
                         getDirection state (heroPos me) tavern
                       else case heroes of
