@@ -31,6 +31,8 @@ bot = attackBot
 randomBot :: Bot
 randomBot _ = liftM fromJust $ liftIO $ pickRandom [Stay, North, South, East, West]
 
+--AA TODO: attackBot can still get blocked by other heros as he tries to go
+--to the tavern! Need to path away from them.
 attackBot :: Bot
 --Attack the weakest hero.
 --If I'm the weakest hero then run to the pub!
@@ -39,17 +41,21 @@ attackBot state = return $ direction
         me = stateHero state
         tavern = nearestTavern state
         direction = if h /= me
-                      then getDirection (stateBoard state) (heroPos me) (heroPos h)
-                      else getDirection (stateBoard state) (heroPos me) tavern
+                      then trace (printState state ++ "weakestHero: " ++ show h) 
+                        getDirection (stateBoard state) (heroPos me) (heroPos h)
+                      else trace (printState state ++ "nearestTavern: " ++ show tavern)
+                        getDirection (stateBoard state) (heroPos me) tavern
 
 minerBot :: Bot
 minerBot state = return $ goToMine closestMine
     where closestMine = nearestMine state
           me = stateHero state
-          goToMine mine = trace ("Board:\n" ++ printBoard (stateBoard state) ++ "\n" ++ 
-                                "Current Position: " ++ show (heroPos me) ++ "\n" ++ 
-                                "closestMine: " ++ show closestMine)
+          goToMine mine = trace (printState state ++ "closestMine: " ++ show closestMine)
             getDirection (stateBoard state) (heroPos me) mine
+
+printState :: State -> String
+printState s = "Board:\n" ++ printBoard (stateBoard s) ++ "\n" ++ 
+                  "Current Position: " ++ show (heroPos $ stateHero s) ++ "\n" 
 
 printBoard :: Board -> String
 printBoard b = intercalate "\n" $ chunksOf bsize tiles
