@@ -40,7 +40,9 @@ attackBot :: Bot
 attackBot state = return $ direction
   where 
         heroes = filter validTarget $ reverse $ sortWith heroMineCount $ gameHeroes (stateGame state)
-        validTarget = (\h -> not (atHome h) && not (atTavern (stateBoard state) h))
+        validTarget = (\h -> not (atHome h) && 
+                             not (atTavern (stateBoard state) h) && 
+                             (h /= me))
         runt = weakestHero state
         me = stateHero state
         tavern = nearestTavern state
