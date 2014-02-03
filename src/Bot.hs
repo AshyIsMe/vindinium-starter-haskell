@@ -2,7 +2,7 @@ module Bot
         (   bot
           , minerBot
           , attackBot
-          , graphFromBoard
+          , graphFromState
           , posToIndex
         )
     where
@@ -31,8 +31,6 @@ bot = attackBot
 randomBot :: Bot
 randomBot _ = liftM fromJust $ liftIO $ pickRandom [Stay, North, South, East, West]
 
---AA TODO: attackBot can still get blocked by other heros as he tries to go
---to the tavern! Need to path away from them.
 attackBot :: Bot
 --Attack the weakest hero.
 --If I'm the weakest hero then run to the pub!
@@ -42,16 +40,16 @@ attackBot state = return $ direction
         tavern = nearestTavern state
         direction = if h /= me
                       then trace (printState state ++ "weakestHero: " ++ show h) 
-                        getDirection (stateBoard state) (heroPos me) (heroPos h)
+                        getDirection state (heroPos me) (heroPos h)
                       else trace (printState state ++ "nearestTavern: " ++ show tavern)
-                        getDirection (stateBoard state) (heroPos me) tavern
+                        getDirection state (heroPos me) tavern
 
 minerBot :: Bot
 minerBot state = return $ goToMine closestMine
     where closestMine = nearestMine state
           me = stateHero state
           goToMine mine = trace (printState state ++ "closestMine: " ++ show closestMine)
-            getDirection (stateBoard state) (heroPos me) mine
+            getDirection state (heroPos me) mine
 
 printState :: State -> String
 printState s = "Board:\n" ++ printBoard (stateBoard s) ++ "\n" ++ 
@@ -74,7 +72,7 @@ nearestTileWith state f =
         positions = boardPositions board
         targetTiles = filter (\p -> f state p) positions
         me = stateHero state
-        paths = map (shortestPath board (heroPos me)) targetTiles
+        paths = map (shortestPath state (heroPos me)) targetTiles
     in
       case (sortWith length paths) of
         ((n1:n2:ns):_) -> indexToPos board $ last $ (n1:n2:ns)
@@ -107,8 +105,8 @@ boardPositions board = positions $ boardSize board
           {-foldl (\ps i -> ps ++ [Pos (i `mod` side) (i `div` side)]) [] [0,1..(side*side)]-}
           foldl (\ps i -> ps ++ [indexToPos board i]) [] [0,1..(side*side)]
 
-getDirection :: Board -> Pos -> Pos -> Dir
-getDirection b source dest = 
+getDirection :: State -> Pos -> Pos -> Dir
+getDirection state source dest = 
     if source == dest
       then trace ("Next Step: Stay\n" ++
               "Full path:" ++ show (map (indexToPos b) path) ++ "\n") 
@@ -118,8 +116,9 @@ getDirection b source dest =
               "Full path:" ++ show (map (indexToPos b) path) ++ "\n") 
               dir
         where nextPos = indexToPos b $ path !! 1
-              path = shortestPath b source dest
+              path = shortestPath state source dest
               dir = directionTo source nextPos
+              b = stateBoard state
               directionTo p1 p2 = 
                 case comparePos p1 p2 of
                   [EQ, GT] -> North
@@ -134,23 +133,26 @@ comparePos source dest =
         y = compare (posY source) (posY dest)
     in [x, y]
 
-graphFromBoard :: Board -> Gr Tile Int
-graphFromBoard b = mkGraph lnodes ledges
+graphFromState :: State -> Gr Tile Int
+graphFromState s = mkGraph lnodes ledges
   where lnodes = map (\i -> (i, (boardTiles b) !! i)) [0,1..n]
-        ledges = walkableEdges b
+        ledges = walkableEdges b (heroId me)
         n = (side * side) - 1
         side = boardSize b
+        b = stateBoard s
+        me = stateHero s
 
-walkableEdges :: Board -> [LEdge Int]
+walkableEdges :: Board -> HeroId -> [LEdge Int]
 --If i is WoodTile, MineTile, TavernTile, HeroTile then it
 --should not have any walkable neighbours because you cant walk onto those
 --tiles. (Even though attempting to walk onto a MineTile is how you capture
---it, it doesn't actually move you onto it)
-walkableEdges b = concat $ map walkableNeighbours [0,1..n]
+--it, it doesn't actually move you onto it). (Our hero's HeroTile is the
+--exception that can be pathed through)
+walkableEdges b hid = concat $ map walkableNeighbours [0,1..n]
   where walkableNeighbours i = map (\t@(p,d) -> (i, posToIndex b p, d)) (validNeighBours i)
         validNeighBours i = case tileAt b (indexToPos b i) of
                               Just FreeTile     -> filter (\ln@(i,_) -> (inBoard b i)) $ neighBours i
-                              Just (HeroTile h) -> filter (\ln@(i,_) -> (inBoard b i)) $ neighBours i
+                              Just (HeroTile h) | h == hid -> filter (\ln@(i,_) -> (inBoard b i)) $ neighBours i
                               _ -> []
         side = boardSize b
         n = (side * side) - 1
@@ -160,11 +162,12 @@ walkableEdges b = concat $ map walkableNeighbours [0,1..n]
                         (Pos (i `mod` side) ((i `div` side) - 1), 1), --North
                         (Pos (i `mod` side) ((i `div` side) + 1), 1)] --South
 
-shortestPath :: Board -> Pos -> Pos -> Path
-shortestPath b start dest = sp s d g
-  where g = graphFromBoard b
+shortestPath :: State -> Pos -> Pos -> Path
+shortestPath state start dest = sp s d g
+  where g = graphFromState state
         s = (posToIndex b start)
         d = (posToIndex b dest)
+        b = stateBoard state
 
 weakestHero :: State -> Hero
 weakestHero state = case take 1 (sortWith heroLife $ gameHeroes (stateGame state)) of
