@@ -115,8 +115,11 @@ getDirection state source dest =
         trace ("Next Step: " ++ show dir ++ "\n" ++
               "Full path:" ++ show (map (indexToPos b) path) ++ "\n") 
               dir
-        where nextPos = indexToPos b $ path !! 1
+        where nextPos = indexToPos b $ step
               path = shortestPath state source dest
+              step = case path of
+                       (p1:p2:_) -> p2
+                       [p1]       -> p1
               dir = directionTo source nextPos
               b = stateBoard state
               directionTo p1 p2 = 
