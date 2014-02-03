@@ -33,16 +33,16 @@ randomBot _ = liftM fromJust $ liftIO $ pickRandom [Stay, North, South, East, We
 
 attackBot :: Bot
 --If I'm the weakest hero then run to the pub!
+--If I'm winning then go enjoy a well earned beer at the pub!
 --Attack the hero with the most mines.
-  --Ignore bots who are standing on their spawn point.
+  --Ignore bots who are standing on their spawn point. (They might have timed out)
   --Ignore bots who are standing next to a TavernTile.
 --If no bots left, then go capture mines instead.
 attackBot state = return $ direction
   where 
         heroes = filter validTarget $ reverse $ sortWith heroMineCount $ gameHeroes (stateGame state)
         validTarget = (\h -> not (atHome h) && 
-                             not (atTavern (stateBoard state) h) && 
-                             (h /= me))
+                             not (atTavern (stateBoard state) h))
         runt = weakestHero state
         me = stateHero state
         tavern = nearestTavern state
@@ -51,8 +51,8 @@ attackBot state = return $ direction
                       then trace (printState state ++ "nearestTavern: " ++ show tavern)
                         getDirection state (heroPos me) tavern
                       else case heroes of
-                             (h:_) -> trace (printState state ++ "most mines Hero: " ++ show h ++ "\n") 
-                                        getDirection state (heroPos me) (heroPos h)
+                             (h:_) | h /= me -> trace (printState state ++ "most mines Hero: " ++ show h ++ "\n") 
+                                                  getDirection state (heroPos me) (heroPos h)
                              _     -> trace (printState state ++ "nearestMine: " ++ show mine ++ "\n") 
                                         getDirection state (heroPos me) mine
 
