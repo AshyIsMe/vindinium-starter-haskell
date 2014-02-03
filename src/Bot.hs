@@ -74,10 +74,9 @@ nearestTileWith state f =
         me = stateHero state
         paths = map (shortestPath state (heroPos me)) targetTiles
     in
-      case (sortWith length paths) of
+      case filter ((1<) . length) (sortWith length paths) of
         ((n1:n2:ns):_) -> indexToPos board $ last $ (n1:n2:ns)
-        []             -> heroPos me --No targetTiles, just Stay
-        ([]:_)         -> error "path empty!"
+        _              -> heroPos me --No targetTiles, just Stay
 
 isMine :: Board -> Pos -> Bool
 isMine b p = case tileAt b p of
