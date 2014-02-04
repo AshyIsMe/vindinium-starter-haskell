@@ -62,6 +62,7 @@ request url val = do
                     , (hUserAgent,   "vindinium-starter-haskell")
                     ]
                 , requestBody = jsonBody (injectKey val key)
+                , responseTimeout = Nothing
                 }
 
     liftIO $ withManager defaultManagerSettings $ \mgr ->
