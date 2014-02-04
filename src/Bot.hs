@@ -46,15 +46,19 @@ attackBot state = return $ direction
         runt = weakestHero state
         me = stateHero state
         tavern = nearestTavern state
-        mine = nearestMine state
+        mine = nearestEnemyMine state
+        neutralMine = nearestNeutralMine state
         direction = if runt == me || (heroLife me) <= 20
                       then trace (printState state ++ "nearestTavern: " ++ show tavern)
                         getDirection state (heroPos me) tavern
-                      else case heroes of
-                             (h:_) | h /= me -> trace (printState state ++ "most mines Hero: " ++ show h ++ "\n") 
-                                                  getDirection state (heroPos me) (heroPos h)
-                             _     -> trace (printState state ++ "nearestMine: " ++ show mine ++ "\n") 
-                                        getDirection state (heroPos me) mine
+                      else case neutralMine of
+                             Just p -> trace (printState state ++ "neutralMine: " ++ show neutralMine ++ "\n") 
+                                        getDirection state (heroPos me) p
+                             _ -> case heroes of
+                                     (h:_) | h /= me -> trace (printState state ++ "most mines Hero: " ++ show h ++ "\n") 
+                                                          getDirection state (heroPos me) (heroPos h)
+                                     _     -> trace (printState state ++ "nearestEnemyMine: " ++ show mine ++ "\n") 
+                                                getDirection state (heroPos me) mine
 
 atHome :: Hero -> Bool
 atHome h = heroPos h == heroSpawnPos h
@@ -72,7 +76,7 @@ atTavern b h = Just TavernTile `elem` neighbourTiles
 
 minerBot :: Bot
 minerBot state = return $ goToMine closestMine
-    where closestMine = nearestMine state
+    where closestMine = nearestEnemyMine state
           me = stateHero state
           goToMine mine = trace (printState state ++ "closestMine: " ++ show closestMine)
             getDirection state (heroPos me) mine
@@ -89,8 +93,13 @@ printBoard b = intercalate "\n" $ chunksOf bsize tiles
 nearestTavern :: State -> Pos
 nearestTavern state = nearestTileWith state isTavern
 
-nearestMine :: State -> Pos
-nearestMine state = nearestTileWith state isEnemyMine
+nearestNeutralMine :: State -> Maybe Pos
+nearestNeutralMine state = case nearestTileWith state isNeutralMine of
+                             p | p /= (heroPos $ stateHero state) -> Just p
+                             otherwise -> Nothing
+
+nearestEnemyMine :: State -> Pos
+nearestEnemyMine state = nearestTileWith state isEnemyMine
 
 nearestTileWith :: State -> (State -> Pos -> Bool) -> Pos
 nearestTileWith state f =
@@ -113,6 +122,11 @@ isTavern :: State -> Pos -> Bool
 isTavern s p = case tileAt (stateBoard s) p of
                  Just TavernTile -> True
                  _ -> False
+
+isNeutralMine :: State -> Pos -> Bool
+isNeutralMine s p = case tileAt (stateBoard s) p of
+                      Just (MineTile Nothing) -> True
+                      _                       -> False
 
 isEnemyMine :: State -> Pos -> Bool
 isEnemyMine s p = case tileAt (stateBoard s) p of
