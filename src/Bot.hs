@@ -61,13 +61,14 @@ attackBot state = return $ direction
         mine = nearestEnemyMine state
         neutralMine = nearestNeutralMine state
         direction
-          | runt == me || (heroLife me) <= 20 =
+          {-| runt == me || (heroLife me) <= 20 =-}
+          | (heroLife me) <= 20 =
               trace (printState state ++ "nearestTavern: " ++ show tavern)
               getDirection state (heroPos me) tavern
           | Just p <- neutralMine = 
               trace (printState state ++ "neutralMine: " ++ show neutralMine ++ "\n") 
               getDirection state (heroPos me) p
-          | h:_ <- heroes, h /= me =
+          | h:_ <- heroes, h /= me, (heroLife h) < (heroLife me) =
               trace (printState state ++ "most mines Hero: " ++ show h ++ "\n") 
               getDirection state (heroPos me) (heroPos h)
           | otherwise = 
@@ -89,11 +90,15 @@ atTavern b h = Just TavernTile `elem` neighbourTiles
     neighbourTiles = map (tileAt b) neighBours
 
 minerBot :: Bot
-minerBot state = return $ goToMine closestMine
+minerBot state = return $ direction
     where closestMine = nearestEnemyMine state
           me = stateHero state
+          tavern = nearestTavern state
           goToMine mine = trace (printState state ++ "closestMine: " ++ show closestMine)
             getDirection state (heroPos me) mine
+          direction
+            | (heroLife me) <= 20 = goToMine closestMine
+            | otherwise = getDirection state (heroPos me) tavern
 
 printState :: State -> String
 printState s = "Board:\n" ++ printBoard (stateBoard s) ++ "\n" ++ 
