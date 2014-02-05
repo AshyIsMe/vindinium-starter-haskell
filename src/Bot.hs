@@ -1,5 +1,6 @@
 module Bot
         (   bot
+          , lookupBot
           , minerBot
           , attackBot
           , graphFromState
@@ -22,6 +23,17 @@ import Debug.Trace
 import Data.List (intercalate)
 import Data.List.Split (chunksOf)
 import Data.Text (unpack)
+import Data.Map (Map, lookup, fromList)
+
+botMap :: Map String Bot
+botMap = fromList [("default", bot),
+                   ("attackBot", attackBot),
+                   ("minerBot", minerBot)]
+
+lookupBot :: String -> Bot
+lookupBot s = case Data.Map.lookup s botMap of
+                Just b -> b
+                _      -> error "Bot not found!"
 
 bot :: Bot
 {-bot = randomBot-}
@@ -48,17 +60,19 @@ attackBot state = return $ direction
         tavern = nearestTavern state
         mine = nearestEnemyMine state
         neutralMine = nearestNeutralMine state
-        direction = if runt == me || (heroLife me) <= 20
-                      then trace (printState state ++ "nearestTavern: " ++ show tavern)
-                        getDirection state (heroPos me) tavern
-                      else case neutralMine of
-                             Just p -> trace (printState state ++ "neutralMine: " ++ show neutralMine ++ "\n") 
-                                        getDirection state (heroPos me) p
-                             _ -> case heroes of
-                                     (h:_) | h /= me -> trace (printState state ++ "most mines Hero: " ++ show h ++ "\n") 
-                                                          getDirection state (heroPos me) (heroPos h)
-                                     _     -> trace (printState state ++ "nearestEnemyMine: " ++ show mine ++ "\n") 
-                                                getDirection state (heroPos me) mine
+        direction
+          | runt == me || (heroLife me) <= 20 =
+              trace (printState state ++ "nearestTavern: " ++ show tavern)
+              getDirection state (heroPos me) tavern
+          | Just p <- neutralMine = 
+              trace (printState state ++ "neutralMine: " ++ show neutralMine ++ "\n") 
+              getDirection state (heroPos me) p
+          | h:_ <- heroes, h /= me =
+              trace (printState state ++ "most mines Hero: " ++ show h ++ "\n") 
+              getDirection state (heroPos me) (heroPos h)
+          | otherwise = 
+              trace (printState state ++ "nearestEnemyMine: " ++ show mine ++ "\n") 
+              getDirection state (heroPos me) mine
 
 atHome :: Hero -> Bool
 atHome h = heroPos h == heroSpawnPos h
@@ -158,7 +172,8 @@ getDirection state source dest =
               path = shortestPath state source dest
               step = case path of
                        (p1:p2:_) -> p2
-                       [p1]       -> p1
+                       [p1]      -> p1
+                       _         -> posToIndex (stateBoard state) $ heroPos $ stateHero state
               dir = directionTo source nextPos
               b = stateBoard state
               directionTo p1 p2 = 

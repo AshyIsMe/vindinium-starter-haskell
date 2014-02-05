@@ -20,6 +20,7 @@ cmdSettings (Arena s) = s
 settings :: Parser Settings
 settings = Settings <$> (Key <$> argument (Just . pack) (metavar "KEY"))
                     <*> (fromString <$> strOption (long "url" <> value "http://vindinium.org"))
+                    <*> (fromString <$> strOption (long "bot" <> value "default"))
 
 trainingCmd :: Parser Cmd
 trainingCmd = Training <$> settings
@@ -41,8 +42,8 @@ runCmd :: Cmd -> IO ()
 runCmd c  = do
     s <- runVindinium (cmdSettings c) $ do
         case c of
-            (Training _ t b) -> playTraining t b bot
-            (Arena _)        -> playArena bot
+            (Training s t b) -> playTraining t b (lookupBot $ unpack $ settingsBot s)
+            (Arena s)              -> playArena (lookupBot $ unpack $ settingsBot s)
 
     putStrLn $ "Game finished: " ++ unpack (stateViewUrl s)
 

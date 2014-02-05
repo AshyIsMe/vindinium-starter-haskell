@@ -6,6 +6,7 @@ module Vindinium.Types
         , Settings (..)
         , Key (..)
         , Bot
+        , BotId
         , State (..)
         , stateBoard 
         , GameId (..)
@@ -29,6 +30,7 @@ newtype Key = Key Text deriving (Show, Eq)
 data Settings = Settings {
     settingsKey :: Key
   , settingsUrl :: Text
+  , settingsBot :: Text
 } deriving (Show, Eq)
 
 newtype Vindinium a = Vindinium { unVindinium :: ReaderT Settings IO a }
@@ -38,6 +40,8 @@ runVindinium :: Settings -> Vindinium a -> IO a
 runVindinium s = flip runReaderT s . unVindinium
 
 type Bot = State -> Vindinium Dir
+
+type BotId = String
 
 data State = State {
     stateGame    :: Game
