@@ -68,9 +68,12 @@ attackBot state = return $ direction
           | Just p <- neutralMine = 
               trace (printState state ++ "neutralMine: " ++ show neutralMine ++ "\n") 
               getDirection state (heroPos me) p
-          | h:_ <- heroes, h /= me, (heroLife h) < (heroLife me) =
-              trace (printState state ++ "most mines Hero: " ++ show h ++ "\n") 
-              getDirection state (heroPos me) (heroPos h)
+          | h:_ <- heroes, (heroLife h) <= (heroLife me) =
+              case h == me of   --Chill at the pub if I'm winning
+                True -> trace (printState state ++ "nearestTavern: " ++ show tavern)
+                        getDirection state (heroPos me) tavern
+                False -> trace (printState state ++ "most mines Hero: " ++ show h ++ "\n") 
+                         getDirection state (heroPos me) (heroPos h)
           | otherwise = 
               trace (printState state ++ "nearestEnemyMine: " ++ show mine ++ "\n") 
               getDirection state (heroPos me) mine
